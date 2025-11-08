@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>阿嬤健康管理日曆 | Grandma's Healthcare Calendar</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft JhengHei', Arial, sans-serif;
+            background: #f5f7fa;
+            color: #2c3e50;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #48bb78;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #38a169;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #718096;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #4a5568;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .calendar-day {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            min-height: 200px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            transition: all 0.3s;
+        }
+
+        .calendar-day:hover {
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+
+        .day-header {
+            font-weight: bold;
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            color: #667eea;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .add-event-btn {
+            background: #48bb78;
+            color: white;
+            border: none;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .add-event-btn:hover {
+            background: #38a169;
+        }
+
+        .event {
+            background: #f7fafc;
+            border-left: 4px solid #667eea;
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .event:hover {
+            background: #edf2f7;
+            transform: translateX(3px);
+        }
+
+        .event-dietary { border-left-color: #48bb78; }
+        .event-medication { border-left-color: #ed8936; }
+        .event-checkup { border-left-color: #4299e1; }
+        .event-surgery { border-left-color: #f56565; }
+        .event-hospitalization { border-left-color: #9f7aea; }
+        .event-clinic { border-left-color: #38b2ac; }
+
+        .event-type {
+            font-size: 0.75em;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: #718096;
+            margin-bottom: 3px;
+        }
+
+        .event-title {
+            font-weight: 600;
+            margin-bottom: 3px;
+        }
+
+        .event-time {
+            font-size: 0.85em;
+            color: #718096;
+        }
+
+        .companion-badge {
+            display: inline-block;
+            background: #bee3f8;
+            color: #2c5282;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.75em;
+            margin-top: 5px;
+        }
+
+        .unassigned {
+            background: #fed7d7;
+            color: #9b2c2c;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .modal-header h2 {
+            color: #667eea;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5em;
+            cursor: pointer;
+            color: #718096;
+        }
+
+        .close-btn:hover {
+            color: #2d3748;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 25px;
+        }
+
+        .btn-danger {
+            background: #f56565;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #e53e3e;
+        }
+
+        .doctor-schedule {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 30px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+        }
+
+        .doctor-schedule h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .schedule-grid {
+            display: grid;
+            grid-template-columns: auto repeat(7, 1fr);
+            gap: 1px;
+            background: #e2e8f0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .schedule-cell {
+            background: white;
+            padding: 12px;
+            text-align: center;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .schedule-header {
+            background: #667eea;
+            color: white;
+            font-weight: 600;
+        }
+
+        .schedule-time {
+            background: #f7fafc;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .doctor-name {
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .doctor-name:hover {
+            background: #edf2f7;
+        }
+
+        @media (max-width: 1200px) {
+            .calendar-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .calendar-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .schedule-grid {
+                font-size: 0.85em;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .calendar-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .event-details {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 2px solid #e2e8f0;
+        }
+
+        .detail-section {
+            margin-bottom: 15px;
+        }
+
+        .detail-section h4 {
+            color: #667eea;
+            margin-bottom: 8px;
+            font-size: 0.95em;
+        }
+
+        .detail-content {
+            background: #f7fafc;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 0.9em;
+            line-height: 1.6;
+        }
+
+        .info-banner {
+            background: #bee3f8;
+            color: #2c5282;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid #4299e1;
+        }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const EVENT_TYPES = {
+            dietary: { label: '飲食', color: '#48bb78' },
+            medication: { label: '用藥', color: '#ed8936' },
+            checkup: { label: '檢查', color: '#4299e1' },
+            surgery: { label: '手術', color: '#f56565' },
+            hospitalization: { label: '住院', color: '#9f7aea' },
+            clinic: { label: '門診', color: '#38b2ac' }
+        };
+
+        const initialEvents = [
+            {
+                id: 1,
+                date: '2025-11-03',
+                type: 'dietary',
+                title: '低礦飲食',
+                time: '',
+                companion: '',
+                notes: '',
+                cautions: '',
+                reference: ''
+            },
+            {
+                id: 2,
+                date: '2025-11-10',
+                type: 'dietary',
+                title: '低礦飲食',
+                time: '',
+                companion: '',
+                notes: '',
+                cautions: '',
+                reference: ''
+            },
+            {
+                id: 3,
+                date: '2025-11-10',
+                type: 'medication',
+                title: '停甲亢藥物',
+                time: '',
+                companion: '',
+                notes: '',
+                cautions: '',
+                reference: ''
+            },
+            {
+                id: 4,
+                date: '2025-11-11',
+                type: 'dietary',
+                title: '7:30前吃完早餐，之後禁食到2:00（可喝水吃藥）',
+                time: '07:30',
+                companion: '',
+                notes: '',
+                cautions: '',
+                reference: ''
+            },
+            {
+                id: 5,
+                date: '2025-11-11',
+                type: 'medication',
+                title: '停甲亢藥物',
+                time: '',
+                companion: '',
+                notes: '',
+                cautions: '',
+                reference: ''
+            },
+            {
+                id: 6,
+                date: '2025-11-11',
+                type: 'checkup',
+                title: '甲狀腺超音波 (1F)',
+                time: '09:30',
+                companion: '',
+                notes: '',
+                cautions: '',
+                reference: ''
+            },
+            {
+                id: 7,
+                date: '2025-11-11',
+                type: 'checkup',
+                title: '腎功能檢查 (B1) + 甲狀腺核子攝影喝藥劑準備 (B1)',
+                time: '10:30',
+                companion: '',
+                notes: '',
+                cautions: '',
+                reference: ''
+            },
+            {
+                id: 8,
+                date: '2025-11-12',
+                type: 'dietary',
+                title: '低礦飲食（到檢查前）',
+                time: '',
+                companion: '',
+                notes: '',
+                cautions: '',
+                reference: ''
+            },
+            {
+                id: 9,
+                date: '2025-11-12',
+                type: 'medication',
+                title: '停甲亢藥物（到檢查前）',
+                time: '',
+                companion: '',
+                notes: '',
+                cautions: '',
+                reference: ''
+            },
+            {
+                id: 10,
+                date: '2025-11-12',
+                type: 'checkup',
+                title: '10:30甲狀腺核子攝影(B1) - 判斷藥物使用',
+                time: '10:30',
+                companion: '',
+                notes: '醫生判斷應是原發最端免疫疾病或是甲狀腺毒症',
+                cautions: '',
+                reference: ''
+            },
+            {
+                id: 11,
+                date: '2025-11-17',
+                type: 'clinic',
+                title: '吳嘉安門診 11:00前報到64號',
+                time: '11:00',
+                companion: '',
+                notes: '主要確認甲狀腺藥物有無副作用 + 調整甲狀腺藥，告知要抽血',
+                cautions: '如果吳醫師覺得還有久甲狀腺才能控制，就到合心樓7健找方專師討論手術安排時間',
+                reference: ''
+            },
+            {
+                id: 12,
+                date: '2025-11-24',
+                type: 'surgery',
+                title: '暫定手術時間',
+                time: '',
+                companion: '',
+                notes: '',
+                cautions: '一定要帶同意書（醫生有蓋章圖的）',
+                reference: ''
+            },
+            {
+                id: 13,
+                date: '2025-11-25',
+                type: 'checkup',
+                title: '15:30甲狀腺穿刺 (1F)',
+                time: '15:30',
+                companion: '',
+                notes: '',
+                cautions: '一定要帶同意書（醫生有蓋章圖的）',
+                reference: ''
+            },
+            {
+                id: 14,
+                date: '2025-12-01',
+                type: 'hospitalization',
+                title: '朱新凱 約14:00報到 31號',
+                time: '14:00',
+                companion: '',
+                notes: '再次確認心臟可以開刀，[?]應該可以關山回診?',
+                cautions: '',
+                reference: ''
+            }
+        ];
+
+        const initialDoctorSchedule = {
+            morning: {
+                mon: ['李政霖', '吳嘉安'],
+                tue: ['江元宏', '朱新凱（玉里）'],
+                wed: ['李政霖', '吳嘉安', '朱新凱'],
+                thu: ['吳嘉安', '朱新凱（關山）'],
+                fri: ['李政霖'],
+                sat: [],
+                sun: []
+            },
+            afternoon: {
+                mon: ['朱新凱'],
+                tue: ['李政霖（玉里）', '吳嘉安'],
+                wed: [],
+                thu: ['江元宏'],
+                fri: ['江元宏'],
+                sat: [],
+                sun: []
+            }
+        };
+
+        function App() {
+            const [events, setEvents] = useState(initialEvents);
+            const [doctorSchedule, setDoctorSchedule] = useState(initialDoctorSchedule);
+            const [showModal, setShowModal] = useState(false);
+            const [editingEvent, setEditingEvent] = useState(null);
+            const [selectedDate, setSelectedDate] = useState('');
+            const [currentMonth, setCurrentMonth] = useState('2025-11');
+
+            const getDaysInMonth = (yearMonth) => {
+                const [year, month] = yearMonth.split('-');
+                const daysInMonth = new Date(year, month, 0).getDate();
+                const days = [];
+                for (let i = 1; i <= daysInMonth; i++) {
+                    days.push(`${yearMonth}-${String(i).padStart(2, '0')}`);
+                }
+                return days;
+            };
+
+            const getEventsForDate = (date) => {
+                return events.filter(e => e.date === date);
+            };
+
+            const openModal = (date, event = null) => {
+                setSelectedDate(date);
+                if (event) {
+                    setEditingEvent(event);
+                } else {
+                    setEditingEvent({
+                        date: date,
+                        type: 'dietary',
+                        title: '',
+                        time: '',
+                        companion: '',
+                        notes: '',
+                        cautions: '',
+                        reference: ''
+                    });
+                }
+                setShowModal(true);
+            };
+
+            const closeModal = () => {
+                setShowModal(false);
+                setEditingEvent(null);
+                setSelectedDate('');
+            };
+
+            const saveEvent = () => {
+                if (editingEvent.id) {
+                    setEvents(events.map(e => e.id === editingEvent.id ? editingEvent : e));
+                } else {
+                    setEvents([...events, { ...editingEvent, id: Date.now() }]);
+                }
+                closeModal();
+            };
+
+            const deleteEvent = (id) => {
+                if (confirm('確定要刪除此事件嗎？')) {
+                    setEvents(events.filter(e => e.id !== id));
+                    closeModal();
+                }
+            };
+
+            const exportData = () => {
+                const data = { events, doctorSchedule };
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `healthcare-calendar-${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+            };
+
+            const importData = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        try {
+                            const data = JSON.parse(event.target.result);
+                            if (data.events) setEvents(data.events);
+                            if (data.doctorSchedule) setDoctorSchedule(data.doctorSchedule);
+                            alert('資料匯入成功！');
+                        } catch (error) {
+                            alert('匯入失敗：檔案格式錯誤');
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            };
+
+            const days = getDaysInMonth(currentMonth);
+
+            return (
+                <div className="container">
+                    <div className="header">
+                        <h1>👵 阿嬤健康管理日曆</h1>
+                        <p>Grandma's Healthcare Calendar - 追蹤飲食、用藥、檢查、手術、住院與門診</p>
+                    </div>
+
+                    <div className="info-banner">
+                        <strong>📌 使用說明：</strong> 點擊日期右側的「+」按鈕新增事件，點擊事件可編輯詳細資訊。使用匯出/匯入功能保存您的資料。
+                    </div>
+
+                    <div className="legend">
+                        {Object.entries(EVENT_TYPES).map(([key, value]) => (
+                            <div key={key} className="legend-item">
+                                <div className="legend-color" style={{ background: value.color }}></div>
+                                <span>{value.label}</span>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="controls">
+                        <input 
+                            type="month" 
+                            value={currentMonth} 
+                            onChange={(e) => setCurrentMonth(e.target.value)}
+                            className="btn"
+                        />
+                        <button className="btn btn-success" onClick={exportData}>📥 匯出資料</button>
+                        <label className="btn btn-secondary" style={{ cursor: 'pointer' }}>
+                            📤 匯入資料
+                            <input type="file" accept=".json" onChange={importData} style={{ display: 'none' }} />
+                        </label>
+                    </div>
+
+                    <div className="calendar-grid">
+                        {days.map(date => {
+                            const dayEvents = getEventsForDate(date);
+                            const dayNum = date.split('-')[2];
+                            return (
+                                <div key={date} className="calendar-day">
+                                    <div className="day-header">
+                                        <span>{dayNum}日</span>
+                                        <button className="add-event-btn" onClick={() => openModal(date)}>+</button>
+                                    </div>
+                                    {dayEvents.map(event => (
+                                        <div 
+                                            key={event.id} 
+                                            className={`event event-${event.type}`}
+                                            onClick={() => openModal(date, event)}
+                                        >
+                                            <div className="event-type">{EVENT_TYPES[event.type].label}</div>
+                                            <div className="event-title">{event.title}</div>
+                                            {event.time && <div className="event-time">⏰ {event.time}</div>}
+                                            {event.companion ? (
+                                                <span className="companion-badge">👤 {event.companion}</span>
+                                            ) : (
+                                                ['checkup', 'clinic', 'surgery', 'hospitalization'].includes(event.type) && (
+                                                    <span className="companion-badge unassigned">未指派陪同</span>
+                                                )
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    <div className="doctor-schedule">
+                        <h2>🏥 醫師門診時間表</h2>
+                        <div className="schedule-grid">
+                            <div className="schedule-cell schedule-header">時段</div>
+                            <div className="schedule-cell schedule-header">週一</div>
+                            <div className="schedule-cell schedule-header">週二</div>
+                            <div className="schedule-cell schedule-header">週三</div>
+                            <div className="schedule-cell schedule-header">週四</div>
+                            <div className="schedule-cell schedule-header">週五</div>
+                            <div className="schedule-cell schedule-header">週六</div>
+                            <div className="schedule-cell schedule-header">週日</div>
+
+                            <div className="schedule-cell schedule-time">上午</div>
+                            {['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].map(day => (
+                                <div key={`morning-${day}`} className="schedule-cell doctor-name">
+                                    {doctorSchedule.morning[day].join(' / ') || '-'}
+                                </div>
+                            ))}
+
+                            <div className="schedule-cell schedule-time">下午</div>
+                            {['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].map(day => (
+                                <div key={`afternoon-${day}`} className="schedule-cell doctor-name">
+                                    {doctorSchedule.afternoon[day].join(' / ') || '-'}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {showModal && (
+                        <div className="modal" onClick={closeModal}>
+                            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                                <div className="modal-header">
+                                    <h2>{editingEvent.id ? '編輯事件' : '新增事件'}</h2>
+                                    <button className="close-btn" onClick={closeModal}>×</button>
+                                </div>
+
+                                <div className="form-group">
+                                    <label>日期</label>
+                                    <input 
+                                        type="date" 
+                                        value={editingEvent.date} 
+                                        onChange={(e) => setEditingEvent({...editingEvent, date: e.target.value})}
+                                    />
+                                </div>
+
+                                <div className="form-group">
+                                    <label>類型</label>
+                                    <select 
+                                        value={editingEvent.type}
+                                        onChange={(e) => setEditingEvent({...editingEvent, type: e.target.value})}
+                                    >
+                                        {Object.entries(EVENT_TYPES).map(([key, value]) => (
+                                            <option key={key} value={key}>{value.label}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="form-group">
+                                    <label>標題 / 內容</label>
+                                    <input 
+                                        type="text" 
+                                        value={editingEvent.title}
+                                        onChange={(e) => setEditingEvent({...editingEvent, title: e.target.value})}
+                                        placeholder="請輸入事件標題"
+                                    />
+                                </div>
+
+                                <div className="form-group">
+                                    <label>時間（選填）</label>
+                                    <input 
+                                        type="time" 
+                                        value={editingEvent.time}
+                                        onChange={(e) => setEditingEvent({...editingEvent, time: e.target.value})}
+                                    />
+                                </div>
+
+                                {['checkup', 'clinic', 'surgery', 'hospitalization'].includes(editingEvent.type) && (
+                                    <div className="form-group">
+                                        <label>👤 陪同人員</label>
+                                        <input 
+                                            type="text" 
+                                            value={editingEvent.companion}
+                                            onChange={(e) => setEditingEvent({...editingEvent, companion: e.target.value})}
+                                            placeholder="請輸入陪同人員姓名"
+                                        />
+                                    </div>
+                                )}
+
+                                <div className="form-group">
+                                    <label>📝 備註</label>
+                                    <textarea 
+                                        value={editingEvent.notes}
+                                        onChange={(e) => setEditingEvent({...editingEvent, notes: e.target.value})}
+                                        placeholder="請輸入相關備註事項"
+                                    />
+                                </div>
+
+                                <div className="form-group">
+                                    <label>⚠️ 注意事項</label>
+                                    <textarea 
+                                        value={editingEvent.cautions}
+                                        onChange={(e) => setEditingEvent({...editingEvent, cautions: e.target.value})}
+                                        placeholder="請輸入需要注意的事項"
+                                    />
+                                </div>
+
+                                <div className="form-group">
+                                    <label>🔗 參考連結</label>
+                                    <input 
+                                        type="url" 
+                                        value={editingEvent.reference}
+                                        onChange={(e) => setEditingEvent({...editingEvent, reference: e.target.value})}
+                                        placeholder="https://"
+                                    />
+                                </div>
+
+                                {editingEvent.notes || editingEvent.cautions || editingEvent.reference ? (
+                                    <div className="event-details">
+                                        {editingEvent.notes && (
+                                            <div className="detail-section">
+                                                <h4>備註預覽</h4>
+                                                <div className="detail-content">{editingEvent.notes}</div>
+                                            </div>
+                                        )}
+                                        {editingEvent.cautions && (
+                                            <div className="detail-section">
+                                                <h4>注意事項預覽</h4>
+                                                <div className="detail-content">{editingEvent.cautions}</div>
+                                            </div>
+                                        )}
+                                        {editingEvent.reference && (
+                                            <div className="detail-section">
+                                                <h4>參考連結預覽</h4>
+                                                <div className="detail-content">
+                                                    <a href={editingEvent.reference} target="_blank" rel="noopener noreferrer">
+                                                        {editingEvent.reference}
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : null}
+
+                                <div className="form-actions">
+                                    {editingEvent.id && (
+                                        <button className="btn btn-danger" onClick={() => deleteEvent(editingEvent.id)}>
+                                            刪除
+                                        </button>
+                                    )}
+                                    <button className="btn btn-secondary" onClick={closeModal}>取消</button>
+                                    <button className="btn btn-primary" onClick={saveEvent}>儲存</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
